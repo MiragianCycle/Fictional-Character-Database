@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1 class="mb-4">Welcome to Character Database</h1>
+    
+    <p class="lead">Hey there, writer! 👋 This tool is designed to help you keep track of your characters and their development throughout your story. Let's bring your characters to life!</p>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <h2 class="mt-5 mb-3">Add a New Character</h2>
+    <p>Ready to introduce a new face to your story? Let's get started!</p>
+    <form method="POST" action="{{ url_for('add_character') }}" class="mb-5">
+        <div class="mb-3">
+            <label for="name" class="form-label">Character Name</label>
+            <input type="text" class="form-control" id="name" name="name" required placeholder="What's your character called?">
+        </div>
+        <div class="mb-3">
+            <label for="description" class="form-label">Character Description</label>
+            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Tell us a bit about your character..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Character</button>
+    </form>
+
+    <h2 class="mb-3">Your Characters</h2>
+    <p>Here's everyone you've created so far. Click on a character to see more details or add their story arc!</p>
+    <div class="row">
+        {% for character in characters %}
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ character.name }}</h5>
+                        <p class="card-text">{{ character.description[:100] }}{% if character.description|length > 100 %}...{% endif %}</p>
+                        <a href="{{ url_for('character_detail', id=character.id) }}" class="btn btn-primary">View Details</a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}

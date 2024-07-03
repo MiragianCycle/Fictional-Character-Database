@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Compare Characters</h1>
+    
+    <form id="compareForm">
+        {% for character in characters %}
+            <label>
+                <input type="checkbox" name="character" value="{{ character.id }}">
+                {{ character.name }}
+            </label><br>
+        {% endfor %}
+        <button type="submit">Compare</button>
+    </form>
+
+    <canvas id="compareChart" width="800" height="400"></canvas>
+
+    <script>
+    document.getElementById('compareForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const selectedCharacters = Array.from(document.querySelectorAll('input[name="character"]:checked')).map(el => el.value);
+        
+        fetch('/compare_characters_data', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({character_ids: selectedCharacters}),
+        })
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('compareChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: data.datasets.map((dataset, index) => ({
+                        label: dataset.name,
+                        data: dataset.psychological_index,
+                        borderColor: `hsl(${index * 360 / data.datasets.length}, 100%, 50%)`,
+                        tension: 0.1
+                    }))
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+    });
+    </script>
+{% endblock %}

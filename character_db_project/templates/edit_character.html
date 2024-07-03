@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Edit Character: {{ character.name }}</h1>
+    
+    <form method="POST">
+        <input type="text" name="name" value="{{ character.name }}" required>
+        <textarea name="description" rows="4">{{ character.description }}</textarea>
+        <button type="submit">Update Character</button>
+    </form>
+    
+    <a href="{{ url_for('character_detail', id=character.id) }}" class="button" style="background-color: #95a5a6;">Cancel</a>
+{% endblock %}
