@@ -5,16 +5,19 @@
     
     <form id="compareForm">
         {% for character in characters %}
-            <label>
-                <input type="checkbox" name="character" value="{{ character.id }}">
-                {{ character.name }}
-            </label><br>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="character" value="{{ character.id }}" id="character{{ character.id }}">
+                <label class="form-check-label" for="character{{ character.id }}">
+                    {{ character.name }}
+                </label>
+            </div>
         {% endfor %}
-        <button type="submit">Compare</button>
+        <button type="submit" class="btn btn-primary mt-3">Compare Selected Characters</button>
     </form>
 
-    <canvas id="compareChart" width="800" height="400"></canvas>
+    <div id="comparisonChart" class="mt-4" style="width: 100%; height: 500px;"></div>
 
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script>
     document.getElementById('compareForm').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -29,27 +32,48 @@
         })
         .then(response => response.json())
         .then(data => {
-            const ctx = document.getElementById('compareChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: data.labels,
-                    datasets: data.datasets.map((dataset, index) => ({
-                        label: dataset.name,
-                        data: dataset.psychological_index,
-                        borderColor: `hsl(${index * 360 / data.datasets.length}, 100%, 50%)`,
-                        tension: 0.1
-                    }))
+            const colors = ['#f5c2e7', '#89b4fa', '#f38ba8', '#a6e3a1', '#fab387', '#cba6f7', '#94e2d5'];
+            const traces = data.datasets.map((dataset, index) => ({
+                x: data.labels,
+                y: dataset.psychological_index,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: dataset.name,
+                line: {color: colors[index % colors.length]},
+                marker: {size: 10, color: colors[index % colors.length]}
+            }));
+
+            const layout = {
+                title: {
+                    text: 'Character Arc Comparison',
+                    font: {color: '#cdd6f4'}
                 },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
+                xaxis: {
+                    title: 'Story Acts',
+                    tickvals: [0, 1, 2],
+                    ticktext: ['Act 1', 'Act 2', 'Act 3'],
+                    color: '#cdd6f4',
+                    gridcolor: '#45475a'
+                },
+                yaxis: {
+                    title: 'Psychological Index',
+                    color: '#cdd6f4',
+                    gridcolor: '#45475a'
+                },
+                paper_bgcolor: '#1e1e2e',
+                plot_bgcolor: '#1e1e2e',
+                font: {color: '#cdd6f4'},
+                legend: {
+                    font: {color: '#cdd6f4'}
                 }
-            });
+            };
+
+            const config = {
+                responsive: true,
+                displayModeBar: false
+            };
+
+            Plotly.newPlot('comparisonChart', traces, layout, config);
         });
     });
     </script>

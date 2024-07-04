@@ -1,9 +1,31 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1 class="mb-4">Welcome to Character Database</h1>
-    
-    <p class="lead">Hey there, writer! 👋 This tool is designed to help you keep track of your characters and their development throughout your story. Let's bring your characters to life!</p>
+    <div class="jumbotron">
+        <h1 class="display-4">Persona</h1>
+        <p class="lead">Craft complex, evolving characters that captivate readers.</p>
+    </div>
+
+    <div class="row mb-5">
+        <div class="col-md-6">
+            <h2>Who It's For</h2>
+            <ul>
+                <li>Novelists</li>
+                <li>Screenwriters</li>
+                <li>Game Developers</li>
+                <li>RPG Masters</li>
+            </ul>
+        </div>
+        <div class="col-md-6">
+            <h2>Key Features</h2>
+            <ul>
+                <li>Dynamic Character Arcs</li>
+                <li>Relationship Mapping</li>
+                <li>Psychological Profiling</li>
+                <li>Character Bible Generator</li>
+            </ul>
+        </div>
+    </div>
 
     {% with messages = get_flashed_messages() %}
         {% if messages %}
@@ -13,22 +35,20 @@
         {% endif %}
     {% endwith %}
 
-    <h2 class="mt-5 mb-3">Add a New Character</h2>
-    <p>Ready to introduce a new face to your story? Let's get started!</p>
+    <h2 class="mt-5 mb-3">Start Your Character Journey</h2>
     <form method="POST" action="{{ url_for('add_character') }}" class="mb-5">
         <div class="mb-3">
             <label for="name" class="form-label">Character Name</label>
-            <input type="text" class="form-control" id="name" name="name" required placeholder="What's your character called?">
+            <input type="text" class="form-control" id="name" name="name" required placeholder="Who's your new character?">
         </div>
         <div class="mb-3">
-            <label for="description" class="form-label">Character Description</label>
-            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Tell us a bit about your character..."></textarea>
+            <label for="description" class="form-label">Quick Description</label>
+            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Jot down the essence of your character..."></textarea>
         </div>
-        <button type="submit" class="btn btn-primary">Add Character</button>
+        <button type="submit" class="btn btn-primary">Create Character</button>
     </form>
 
-    <h2 class="mb-3">Your Characters</h2>
-    <p>Here's everyone you've created so far. Click on a character to see more details or add their story arc!</p>
+    <h2 class="mb-3">Your Character Ensemble</h2>
     <div class="row">
         {% for character in characters %}
             <div class="col-md-4 mb-4">
@@ -36,10 +56,12 @@
                     <div class="card-body">
                         <h5 class="card-title">{{ character.name }}</h5>
                         <p class="card-text">{{ character.description[:100] }}{% if character.description|length > 100 %}...{% endif %}</p>
-                        <a href="{{ url_for('character_detail', id=character.id) }}" class="btn btn-primary">View Details</a>
+                        <a href="{{ url_for('character_detail', id=character.id) }}" class="btn btn-primary">Develop Character</a>
                     </div>
                 </div>
             </div>
         {% endfor %}
     </div>
+
+    <!-- The rest of your index.html content (character comparison section) remains the same -->
 {% endblock %}

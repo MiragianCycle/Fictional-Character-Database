@@ -1,14 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.hybrid import hybrid_property
-import logging
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///characters.db'
 app.config['SECRET_KEY'] = 'your_secret_key'  # needed for flashing messages
 db = SQLAlchemy(app)
-
-logging.basicConfig(level=logging.DEBUG)
 
 class Character(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -162,14 +159,39 @@ def add_relationship(id):
     flash('Relationship added successfully!')
     return redirect(url_for('character_detail', id=id))
 
+@app.route('/character/<int:id>/edit_relationship/<int:relationship_id>', methods=['POST'])
+def edit_relationship(id, relationship_id):
+    relationship = Relationship.query.get_or_404(relationship_id)
+    relationship.relationship_type = request.form['relationship_type']
+    relationship.intensity = int(request.form['intensity'])
+    db.session.commit()
+    flash('Relationship updated successfully!')
+    return redirect(url_for('character_detail', id=id))
+
+@app.route('/character/<int:id>/relationships')
+def character_relationships(id):
+    character = Character.query.get_or_404(id)
+    relationships = Relationship.query.filter((Relationship.character_from_id == id) | (Relationship.character_to_id == id)).all()
+    
+    nodes = [{"id": character.id, "name": character.name}]
+    links = []
+    
+    for rel in relationships:
+        other_character = rel.character_to if rel.character_from_id == id else rel.character_from
+        nodes.append({"id": other_character.id, "name": other_character.name})
+        links.append({
+            "source": rel.character_from_id,
+            "target": rel.character_to_id,
+            "intensity": rel.intensity,
+            "type": rel.relationship_type
+        })
+    
+    return jsonify({"nodes": nodes, "links": links})
+
 @app.route('/compare_characters')
 def compare_characters():
     characters = Character.query.all()
     return render_template('compare_characters.html', characters=characters)
-
-@app.route('/how_to_use')
-def how_to_use():
-    return render_template('how_to_use.html')
 
 @app.route('/compare_characters_data', methods=['POST'])
 def compare_characters_data():
@@ -192,8 +214,11 @@ def compare_characters_data():
         'datasets': data
     })
 
+@app.route('/how_to_use')
+def how_to_use():
+    return render_template('how_to_use.html')
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.logger.info('Starting the Flask application')
-    app.run(debug=True, host='0.0.0.0', port=5004)
+    app.run(debug=True)

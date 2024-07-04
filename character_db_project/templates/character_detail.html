@@ -4,10 +4,10 @@
     <h1>{{ character.name }}</h1>
     <p>{{ character.description }}</p>
     
-    <a href="{{ url_for('edit_character', id=character.id) }}" class="button">Edit Character</a>
+    <a href="{{ url_for('edit_character', id=character.id) }}" class="btn btn-primary">Edit Character</a>
     
     <form method="POST" action="{{ url_for('delete_character', id=character.id) }}" onsubmit="return confirm('Are you sure you want to delete this character?');" style="display: inline;">
-        <button type="submit" style="background-color: #e74c3c;">Delete Character</button>
+        <button type="submit" class="btn btn-danger">Delete Character</button>
     </form>
 
     <h2>Character Arc</h2>
@@ -19,33 +19,57 @@
         </div>
         
         <h3>Psychological Index Chart</h3>
-        <canvas id="arcChart" width="400" height="200"></canvas>
+        <div id="arcChart" style="width: 100%; height: 400px;"></div>
         
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
         <script>
         fetch('/character/{{ character.id }}/arc_data')
             .then(response => response.json())
             .then(data => {
-                const ctx = document.getElementById('arcChart').getContext('2d');
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: data.labels,
-                        datasets: [{
-                            label: 'Psychological Index',
-                            data: data.psychological_index,
-                            borderColor: 'rgb(75, 192, 192)',
-                            tension: 0.1
-                        }]
+                const trace = {
+                    x: data.labels,
+                    y: data.psychological_index,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: 'Psychological Index',
+                    line: {color: '#f5c2e7'},
+                    marker: {size: 10, color: '#cba6f7'}
+                };
+
+                const layout = {
+                    title: {
+                        text: '{{ character.name }}\'s Character Arc',
+                        font: {color: '#cdd6f4'}
                     },
-                    options: {
-                        responsive: true,
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
+                    xaxis: {
+                        title: 'Story Acts',
+                        tickvals: [0, 1, 2],
+                        ticktext: ['Act 1', 'Act 2', 'Act 3'],
+                        color: '#cdd6f4',
+                        gridcolor: '#45475a'
+                    },
+                    yaxis: {
+                        title: 'Psychological Index',
+                        color: '#cdd6f4',
+                        gridcolor: '#45475a'
+                    },
+                    paper_bgcolor: '#1e1e2e',
+                    plot_bgcolor: '#1e1e2e',
+                    font: {color: '#cdd6f4'},
+                    legend: {
+                        x: 0,
+                        y: 1.2,
+                        orientation: 'h',
+                        font: {color: '#cdd6f4'}
                     }
-                });
+                };
+
+                const config = {
+                    responsive: true,
+                    displayModeBar: false
+                };
+
+                Plotly.newPlot('arcChart', [trace], layout, config);
             });
         </script>
 
@@ -59,7 +83,7 @@
                 <label>Act 3 - Self Esteem: <input type="number" name="act3_self_esteem" min="0" max="5" step="0.1" required value="{{ arc.act3_self_esteem }}"></label>
                 <label>Act 3 - Social Reputation: <input type="number" name="act3_social_reputation" min="0" max="5" step="0.1" required value="{{ arc.act3_social_reputation }}"></label>
             </div>
-            <button type="submit">Update Arc</button>
+            <button type="submit" class="btn btn-primary">Update Arc</button>
         </form>
     {% else %}
         <h3>Add Character Arc</h3>
@@ -72,11 +96,14 @@
                 <label>Act 3 - Self Esteem: <input type="number" name="act3_self_esteem" min="0" max="5" step="0.1" required></label>
                 <label>Act 3 - Social Reputation: <input type="number" name="act3_social_reputation" min="0" max="5" step="0.1" required></label>
             </div>
-            <button type="submit">Add Arc</button>
+            <button type="submit" class="btn btn-primary">Add Arc</button>
         </form>
     {% endif %}
 
     <h2>Character Relationships</h2>
+    <div id="relationshipGraph" style="width: 600px; height: 400px;"></div>
+
+    <h3>Existing Relationships</h3>
     {% if relationships %}
         <ul>
         {% for relationship in relationships %}
@@ -86,6 +113,11 @@
                 {% else %}
                     {{ relationship.character_from.name }} ({{ relationship.relationship_type }}) - Intensity: {{ relationship.intensity }}
                 {% endif %}
+                <form method="POST" action="{{ url_for('edit_relationship', id=character.id, relationship_id=relationship.id) }}" style="display: inline;">
+                    <input type="text" name="relationship_type" value="{{ relationship.relationship_type }}" required>
+                    <input type="number" name="intensity" min="1" max="10" value="{{ relationship.intensity }}" required>
+                    <button type="submit" class="btn btn-sm btn-primary">Update</button>
+                </form>
             </li>
         {% endfor %}
         </ul>
@@ -111,6 +143,69 @@
             Intensity (1-10):
             <input type="number" name="intensity" min="1" max="10" required>
         </label>
-        <button type="submit">Add Relationship</button>
+        <button type="submit" class="btn btn-primary">Add Relationship</button>
     </form>
+
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script>
+    // Fetch relationship data
+    fetch('/character/{{ character.id }}/relationships')
+        .then(response => response.json())
+        .then(data => createRelationshipGraph(data));
+
+    function createRelationshipGraph(data) {
+        const width = 600;
+        const height = 400;
+
+        const svg = d3.select("#relationshipGraph")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        const simulation = d3.forceSimulation(data.nodes)
+            .force("link", d3.forceLink(data.links).id(d => d.id))
+            .force("charge", d3.forceManyBody().strength(-400))
+            .force("center", d3.forceCenter(width / 2, height / 2));
+
+        const link = svg.append("g")
+            .selectAll("line")
+            .data(data.links)
+            .enter().append("line")
+            .attr("stroke-width", d => Math.sqrt(d.intensity))
+            .attr("stroke", d => d3.interpolateRgb("#89b4fa", "#f38ba8")(d.intensity / 10));
+
+        const node = svg.append("g")
+            .selectAll("circle")
+            .data(data.nodes)
+            .enter().append("circle")
+            .attr("r", 5)
+            .attr("fill", d => d.id === {{ character.id }} ? "#f5c2e7" : "#89b4fa");
+
+        const label = svg.append("g")
+            .selectAll("text")
+            .data(data.nodes)
+            .enter().append("text")
+            .text(d => d.name)
+            .attr("font-size", 12)
+            .attr("dx", 8)
+            .attr("dy", 3)
+            .attr("fill", "#cdd6f4");
+
+        simulation.on("tick", () => {
+            link
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+            node
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y);
+
+            label
+                .attr("x", d => d.x)
+                .attr("y", d => d.y);
+        });
+    }
+    </script>
 {% endblock %}
