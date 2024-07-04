@@ -1,6 +1,17 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.hybrid import hybrid_property
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from io import BytesIO
+import matplotlib
+matplotlib.use('Agg')  # Use the 'Agg' backend which doesn't require a GUI
+import matplotlib.pyplot as plt
+import networkx as nx
+import datetime
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///characters.db'
@@ -188,6 +199,28 @@ def character_relationships(id):
     
     return jsonify({"nodes": nodes, "links": links})
 
+@app.route('/relationships')
+def relationships():
+    return render_template('relationships.html')
+
+@app.route('/all_relationships')
+def all_relationships():
+    relationships = Relationship.query.all()
+    characters = Character.query.all()
+    
+    nodes = [{"id": character.id, "name": character.name} for character in characters]
+    links = []
+    
+    for rel in relationships:
+        links.append({
+            "source": rel.character_from_id,
+            "target": rel.character_to_id,
+            "intensity": rel.intensity,
+            "type": rel.relationship_type
+        })
+    
+    return jsonify({"nodes": nodes, "links": links})
+
 @app.route('/compare_characters')
 def compare_characters():
     characters = Character.query.all()
@@ -217,6 +250,105 @@ def compare_characters_data():
 @app.route('/how_to_use')
 def how_to_use():
     return render_template('how_to_use.html')
+
+@app.route('/generate_pdf', methods=['GET', 'POST'])
+def generate_pdf():
+    if request.method == 'POST':
+        author_name = request.form['author_name']
+        work_title = request.form['work_title']
+        return generate_character_bible_pdf(author_name, work_title)
+    return render_template('generate_pdf.html')
+
+def generate_character_bible_pdf(author_name, work_title):
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+    
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name='Footer', fontSize=8, alignment=1))
+    
+    Story = []
+    
+    # Front matter
+    Story.append(Paragraph("This PDF was rendered by PERSONATA", styles['Title']))
+    Story.append(Spacer(1, 12))
+    
+    # Characters Section
+    Story.append(Paragraph("Characters", styles['Heading1']))
+    characters = Character.query.order_by(Character.name).all()
+    for character in characters:
+        Story.append(Paragraph(character.name, styles['Heading2']))
+        Story.append(Paragraph(character.description, styles['Normal']))
+        Story.append(Spacer(1, 12))
+        
+        # Generate and add psychological chart
+        arc = CharacterArc.query.filter_by(character_id=character.id).first()
+        if arc:
+            plt.figure(figsize=(6, 4))
+            plt.plot(['Act 1', 'Act 2', 'Act 3'], 
+                     [arc.act1_psychological_index, arc.act2_psychological_index, arc.act3_psychological_index], 
+                     marker='o')
+            plt.title(f"{character.name}'s Psychological Index")
+            plt.ylabel("Psychological Index")
+            img_buffer = BytesIO()
+            plt.savefig(img_buffer, format='png')
+            img_buffer.seek(0)
+            img = Image(img_buffer)
+            img.drawHeight = 3*inch
+            img.drawWidth = 4*inch
+            Story.append(img)
+        
+        Story.append(Spacer(1, 12))
+    
+    # Relationships Section
+    Story.append(Paragraph("Relationships", styles['Heading1']))
+    
+    # Generate network diagram
+    G = nx.Graph()
+    relationships = Relationship.query.all()
+    for rel in relationships:
+        G.add_edge(rel.character_from.name, rel.character_to.name, weight=rel.intensity)
+    
+    plt.figure(figsize=(8, 6))
+    pos = nx.spring_layout(G)
+    nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=500, font_size=8)
+    edge_labels = nx.get_edge_attributes(G, 'weight')
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+    
+    network_buffer = BytesIO()
+    plt.savefig(network_buffer, format='png')
+    network_buffer.seek(0)
+    network_img = Image(network_buffer)
+    network_img.drawHeight = 6*inch
+    network_img.drawWidth = 8*inch
+    Story.append(network_img)
+    
+    # Build the PDF
+    doc.build(Story, onFirstPage=lambda canvas, doc: add_page_number(canvas, doc, author_name, work_title),
+              onLaterPages=lambda canvas, doc: add_page_number(canvas, doc, author_name, work_title))
+    
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, attachment_filename='character_bible.pdf', mimetype='application/pdf')
+
+def add_page_number(canvas, doc, author_name, work_title):
+    canvas.saveState()
+    styles = getSampleStyleSheet()
+    footer_style = styles['Footer']
+    
+    # Add page number
+    page_num = canvas.getPageNumber()
+    text = f"Page {page_num}"
+    p = Paragraph(text, footer_style)
+    p.wrapOn(canvas, doc.width, doc.bottomMargin)
+    p.drawOn(canvas, doc.leftMargin, 0.5 * inch)
+    
+    # Add copyright footer
+    year = datetime.datetime.now().year
+    copyright_text = f"© {year} {author_name} - {work_title}"
+    p = Paragraph(copyright_text, footer_style)
+    p.wrapOn(canvas, doc.width, doc.bottomMargin)
+    p.drawOn(canvas, doc.leftMargin, 0.25 * inch)
+    
+    canvas.restoreState()
 
 if __name__ == '__main__':
     with app.app_context():

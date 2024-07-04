@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Persona: A Toolkit for Creating Compelling Fictional Characters</title>
+    <title>PERSONATA: A Toolkit for Creating Compelling Fictional Characters</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+Pro:wght@300;400;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         :root {
             --bg-color: #1e1e2e;
@@ -16,12 +14,19 @@
             --primary-color: #f5c2e7;
             --secondary-color: #89b4fa;
             --accent-color: #f38ba8;
+            --hover-color: #cba6f7;
         }
         body {
             font-family: 'Source Sans Pro', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main {
+            flex: 1;
         }
         h1, h2, h3, h4, h5, h6 {
             font-family: 'Playfair Display', serif;
@@ -33,6 +38,10 @@
         }
         .navbar-brand, .nav-link {
             color: var(--primary-color) !important;
+            transition: color 0.3s ease;
+        }
+        .navbar-brand:hover, .nav-link:hover {
+            color: var(--hover-color) !important;
         }
         .jumbotron {
             background-color: var(--secondary-color);
@@ -65,12 +74,27 @@
             color: var(--text-color);
             box-shadow: 0 0 0 0.2rem rgba(245, 194, 231, 0.25);
         }
+        footer {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            text-align: center;
+            padding: 1rem 0;
+            margin-top: 2rem;
+            border-top: 1px solid var(--primary-color);
+        }
+        footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+        footer a:hover {
+            color: var(--hover-color);
+        }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-md navbar-dark fixed-top">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('index') }}">Persona</a>
+            <a class="navbar-brand" href="{{ url_for('index') }}">PERSONATA</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -85,6 +109,12 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('how_to_use') }}">How to Use</a>
                     </li>
+              <li class="nav-item">
+    <a class="nav-link" href="{{ url_for('relationships') }}">Relationships</a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('generate_pdf') }}">Generate PDF</a>
+</li>
                 </ul>
             </div>
         </div>
@@ -93,6 +123,12 @@
     <main class="container" style="padding-top: 5rem;">
         {% block content %}{% endblock %}
     </main>
+
+    <footer>
+        <div class="container">
+            Made with ❤️ by <a href="https://www.theena.net/" target="_blank">Theena Kumaragurunathan</a>, 2024
+        </div>
+    </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

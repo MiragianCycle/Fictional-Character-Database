@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Generate Character Bible PDF</h1>
+<form method="POST">
+    <div class="mb-3">
+        <label for="author_name" class="form-label">Author Name</label>
+        <input type="text" class="form-control" id="author_name" name="author_name" required>
+    </div>
+    <div class="mb-3">
+        <label for="work_title" class="form-label">Title of Work</label>
+        <input type="text" class="form-control" id="work_title" name="work_title" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Generate PDF</button>
+</form>
+{% endblock %}
