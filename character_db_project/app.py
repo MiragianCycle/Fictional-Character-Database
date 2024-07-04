@@ -6,6 +6,7 @@ from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
+from reportlab.pdfgen import canvas
 from io import BytesIO
 import matplotlib
 matplotlib.use('Agg')  # Use the 'Agg' backend which doesn't require a GUI
@@ -264,7 +265,6 @@ def generate_character_bible_pdf(author_name, work_title):
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
     
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name='Footer', fontSize=8, alignment=1))
     
     Story = []
     
@@ -291,6 +291,7 @@ def generate_character_bible_pdf(author_name, work_title):
             plt.ylabel("Psychological Index")
             img_buffer = BytesIO()
             plt.savefig(img_buffer, format='png')
+            plt.close()
             img_buffer.seek(0)
             img = Image(img_buffer)
             img.drawHeight = 3*inch
@@ -316,6 +317,7 @@ def generate_character_bible_pdf(author_name, work_title):
     
     network_buffer = BytesIO()
     plt.savefig(network_buffer, format='png')
+    plt.close()
     network_buffer.seek(0)
     network_img = Image(network_buffer)
     network_img.drawHeight = 6*inch
@@ -327,30 +329,15 @@ def generate_character_bible_pdf(author_name, work_title):
               onLaterPages=lambda canvas, doc: add_page_number(canvas, doc, author_name, work_title))
     
     buffer.seek(0)
-    return send_file(buffer, as_attachment=True, attachment_filename='character_bible.pdf', mimetype='application/pdf')
+    return send_file(buffer, 
+                     download_name='character_bible.pdf',
+                     as_attachment=True, 
+                     mimetype='application/pdf')
 
 def add_page_number(canvas, doc, author_name, work_title):
     canvas.saveState()
-    styles = getSampleStyleSheet()
-    footer_style = styles['Footer']
-    
-    # Add page number
-    page_num = canvas.getPageNumber()
-    text = f"Page {page_num}"
-    p = Paragraph(text, footer_style)
-    p.wrapOn(canvas, doc.width, doc.bottomMargin)
-    p.drawOn(canvas, doc.leftMargin, 0.5 * inch)
-    
-    # Add copyright footer
-    year = datetime.datetime.now().year
-    copyright_text = f"© {year} {author_name} - {work_title}"
-    p = Paragraph(copyright_text, footer_style)
-    p.wrapOn(canvas, doc.width, doc.bottomMargin)
-    p.drawOn(canvas, doc.leftMargin, 0.25 * inch)
-    
-    canvas.restoreState()
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5003)
