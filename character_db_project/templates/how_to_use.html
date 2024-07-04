@@ -1,9 +1,42 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1 class="mb-4">How to Use Character Database</h1>
     
-    <p class="lead">Welcome to Character Database! This tool is designed to help writers keep track of their characters and their development throughout a story. Here's how to get the most out of it:</p>
+    <p class="lead">PERSONATA helps writers, novelists, game designers craft compelling fictional characters. </p>
+
+
+    <p class="lead">I developed PERSONATA to help me with my own writing work.   Before I chained all these processes into this single tool, PERSONATA was a collection of various workflows involving Excel Sheets, Markdown, endless screenshots, to get a single PDF. All of these disparate processes and tools have been chained together in one tool now. It is primarily for my use, but if anyone is interested, feel free to use as you see fit. </p>
+
+
+    <h2 class="mt-5 mb-3">Who Are You?</h2>
+    <p>I am a novelist and filmmaker based in Colombo, Sri Lanka. You can find out more at my <a href=https://theena.net>personal site.</a></p>
+
+
+    <h2 class="mt-5 mb-3">How Did You Make this?</h2>
+    <p>If you mean what tech stack runs PERSONATA, then it's pretty simple: <ol>Python 3, Flask, SQLite, and plain old HTML and CSS. The charting functionality is thanks to JavaScript libraries.</ol>I coded PERSONATA in combination with Claude from Anthropheric.</p>
+
+    <h2 class="mt-5 mb-3">Are You a Programmer?</h2>
+    <p>Dear lord, no. I have very primitive coding skills, but I make up for it with curiosity and bloody-minded willpower. I am, at best, a power user of certain open source tech: give me a Unix-based environment and NeoVim, and I will inevitably do some dumb shit. Sometimes that dumb shit is useful.</p>
+
+    <h2 class="mt-5 mb-3">How did PERSONATA come about?</h2>
+    <p>Okay story time. </p>
+    <p>PERSONATA is the result of over a decade of work. Back when I started writing my fiction, I would begin with a list of characters. I would list these characters and use this list as a reference when writing the actual story. But this list had zero uses besides a tool for remembering the names of characters. I needed more.</p>
+    <p>I flirted with psychological profiling these fictional people. My system was simple:</p>
+    <ol> 1. A fictional person would be moulded by two phenomena: their self esteem, and their social reputation</ol>
+    <ol>2. No person's self esteem and social reputation stays static over their lifetimes.</ol> 
+    <ol> 3. I could score both phenomena on a scale of 0-5. i.e. A person with 5 as their self-esteem is a gigantic egotist/narcissit, a person with 0 self-esteem is probably in need of serious mental help intervention. Very few people - either in the real world or in fictional worlds - are 0s or 5s. Most people fall into a range between 1-3 their entire lives. </ol> 
+    <ol>4. Likewise, a person with a 5 social reputation is probably a saint, and someone with a 0 social reputation is probably a war criminal. Again, very few poeple in life have social reputations of 0 or 5. Most go through 1-3 through the course of their lives. </ol>
+    <ol>5. Finding the difference between Self-Esteem and Social Reputation (i.e. Self-Esteem - Social Reputation) gave me a number. I decided to call this number the <b>Psychological Index</b>.</ol> 
+    <ol>6. If a person's self-esteem and social reputation changes over the course of their lives, it stands to reason that this Psychological Index would also change during their lifetime.</ol>
+    <ol>7. If I were to track a fictional person's Self-Esteem and Social Reputations over the course of my narrative - and let's assume we are measuring narrative time as Acts [i.e. Act 1, Act 2, and Act 3] - we arrive at three Psychological Indicies over the same narrative time.</ol>
+    <ol>8. Plot Psychological Index as a line graph over time (i.e. Narrative Time measured in acts), you get a literal character arc. </ol>
+    <p>I moved this system from pen and paper to Excel sheet, since I needed to create tables and charts to see the system at work. Here is an early screenshot of the system in an Excel Worksheet.</p>
+
+    <p>PERSONATA is the <i>appification</i> (is that a word?) of this system so I don't have to spend time on Excel and Charts, instead of writing.</p> 
+
+
+
+
 
     <h2 class="mt-5 mb-3">1. Adding Characters</h2>
     <p>Start by adding your characters to the database. On the home page, you'll find a form to enter a character's name and description. This is your chance to give a brief overview of who they are.</p>
