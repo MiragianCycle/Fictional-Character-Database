@@ -8,7 +8,7 @@
 
     <div class="row mb-5">
         <div class="col-md-6">
-            <h2>Who It's For</h2>
+            <h2>Aimed At</h2>
             <ul>
                 <li>Novelists</li>
                 <li>Screenwriters</li>
@@ -35,10 +35,10 @@
         {% endif %}
     {% endwith %}
 
-    <h2 class="mt-5 mb-3">Start Your Character Journey</h2>
+    <h2 class="mt-5 mb-3">Build Your Character </h2>
     <form method="POST" action="{{ url_for('add_character') }}" class="mb-5">
         <div class="mb-3">
-            <label for="name" class="form-label">Character Name</label>
+            <label for="name" class="form-label">Name</label>
             <input type="text" class="form-control" id="name" name="name" required placeholder="Who's your new character?">
         </div>
         <div class="mb-3">
@@ -48,7 +48,7 @@
         <button type="submit" class="btn btn-primary">Create Character</button>
     </form>
 
-    <h2 class="mb-3">Your Character Ensemble</h2>
+    <h2 class="mb-3">Your Characters </h2>
     <div class="row">
         {% for character in characters %}
             <div class="col-md-4 mb-4">

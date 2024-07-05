@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.hybrid import hybrid_property
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
@@ -13,6 +13,11 @@ matplotlib.use('Agg')  # Use the 'Agg' backend which doesn't require a GUI
 import matplotlib.pyplot as plt
 import networkx as nx
 import datetime
+from scipy import interpolate
+import numpy as np
+
+
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///characters.db'
@@ -142,13 +147,14 @@ def character_arc_data(id):
     character = Character.query.get_or_404(id)
     arc = CharacterArc.query.filter_by(character_id=id).first()
     if arc:
+        x = [0, 1, 2]
+        y = [arc.act1_psychological_index, arc.act2_psychological_index, arc.act3_psychological_index]
+        x_smooth, y_smooth = create_curve(x, y)
         data = {
             'labels': ['Act 1', 'Act 2', 'Act 3'],
-            'psychological_index': [
-                arc.act1_psychological_index,
-                arc.act2_psychological_index,
-                arc.act3_psychological_index
-            ]
+            'psychological_index': y,
+            'x_smooth': x_smooth.tolist(),
+            'y_smooth': y_smooth.tolist()
         }
         return jsonify(data)
     return jsonify({'error': 'No arc data available'})
@@ -265,30 +271,43 @@ def generate_character_bible_pdf(author_name, work_title):
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
     
     styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name='CenterTitle', parent=styles['Title'], alignment=1))
     
     Story = []
     
     # Front matter
-    Story.append(Paragraph("This PDF was rendered by PERSONATA", styles['Title']))
+    Story.append(Paragraph(work_title, styles['CenterTitle']))
     Story.append(Spacer(1, 12))
+    Story.append(Paragraph(author_name, styles['CenterTitle']))
+    Story.append(Spacer(1, 36))
+    Story.append(Paragraph("Character Bible", styles['CenterTitle']))
+    Story.append(Spacer(1, 36))
+    current_year = datetime.datetime.now().year
+    Story.append(Paragraph(f"Copyright, {author_name}, {current_year}", styles['CenterTitle']))
+    Story.append(PageBreak())
     
     # Characters Section
-    Story.append(Paragraph("Characters", styles['Heading1']))
     characters = Character.query.order_by(Character.name).all()
     for character in characters:
-        Story.append(Paragraph(character.name, styles['Heading2']))
+        Story.append(Paragraph(character.name, styles['Heading1']))
         Story.append(Paragraph(character.description, styles['Normal']))
         Story.append(Spacer(1, 12))
         
-        # Generate and add psychological chart
+        # Character Arc
+        Story.append(Paragraph("Character Arc", styles['Heading2']))
         arc = CharacterArc.query.filter_by(character_id=character.id).first()
         if arc:
+            x = [0, 1, 2]
+            y = [arc.act1_psychological_index, arc.act2_psychological_index, arc.act3_psychological_index]
+            x_smooth, y_smooth = create_curve(x, y)
+            
             plt.figure(figsize=(6, 4))
-            plt.plot(['Act 1', 'Act 2', 'Act 3'], 
-                     [arc.act1_psychological_index, arc.act2_psychological_index, arc.act3_psychological_index], 
-                     marker='o')
+            plt.plot(x_smooth, y_smooth, '-')
+            plt.plot(x, y, 'o')
             plt.title(f"{character.name}'s Psychological Index")
+            plt.xlabel("Story Acts")
             plt.ylabel("Psychological Index")
+            plt.xticks([0, 1, 2], ['Act 1', 'Act 2', 'Act 3'])
             img_buffer = BytesIO()
             plt.savefig(img_buffer, format='png')
             plt.close()
@@ -299,34 +318,34 @@ def generate_character_bible_pdf(author_name, work_title):
             Story.append(img)
         
         Story.append(Spacer(1, 12))
-    
-    # Relationships Section
-    Story.append(Paragraph("Relationships", styles['Heading1']))
-    
-    # Generate network diagram
-    G = nx.Graph()
-    relationships = Relationship.query.all()
-    for rel in relationships:
-        G.add_edge(rel.character_from.name, rel.character_to.name, weight=rel.intensity)
-    
-    plt.figure(figsize=(8, 6))
-    pos = nx.spring_layout(G)
-    nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=500, font_size=8)
-    edge_labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
-    
-    network_buffer = BytesIO()
-    plt.savefig(network_buffer, format='png')
-    plt.close()
-    network_buffer.seek(0)
-    network_img = Image(network_buffer)
-    network_img.drawHeight = 6*inch
-    network_img.drawWidth = 8*inch
-    Story.append(network_img)
+        
+        # Relationships
+        Story.append(Paragraph("Relationships", styles['Heading2']))
+        relationships = Relationship.query.filter((Relationship.character_from_id == character.id) | (Relationship.character_to_id == character.id)).all()
+        G = nx.Graph()
+        for rel in relationships:
+            other_character = rel.character_to if rel.character_from_id == character.id else rel.character_from
+            G.add_edge(character.name, other_character.name, weight=rel.intensity)
+        
+        plt.figure(figsize=(6, 4))
+        pos = nx.spring_layout(G)
+        nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=500, font_size=8)
+        edge_labels = nx.get_edge_attributes(G, 'weight')
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+        
+        network_buffer = BytesIO()
+        plt.savefig(network_buffer, format='png')
+        plt.close()
+        network_buffer.seek(0)
+        network_img = Image(network_buffer)
+        network_img.drawHeight = 3*inch
+        network_img.drawWidth = 4*inch
+        Story.append(network_img)
+        
+        Story.append(PageBreak())
     
     # Build the PDF
-    doc.build(Story, onFirstPage=lambda canvas, doc: add_page_number(canvas, doc, author_name, work_title),
-              onLaterPages=lambda canvas, doc: add_page_number(canvas, doc, author_name, work_title))
+    doc.build(Story, onFirstPage=add_page_number, onLaterPages=add_page_number)
     
     buffer.seek(0)
     return send_file(buffer, 
@@ -334,8 +353,29 @@ def generate_character_bible_pdf(author_name, work_title):
                      as_attachment=True, 
                      mimetype='application/pdf')
 
-def add_page_number(canvas, doc, author_name, work_title):
+
+
+
+
+def add_page_number(canvas, doc):
     canvas.saveState()
+    canvas.setFont('Times-Roman', 10)
+    page_num = canvas.getPageNumber()
+    text = f"Page {page_num}"
+    canvas.drawRightString(7.5*inch, 0.5*inch, text)
+    canvas.restoreState()
+
+
+def create_curve(x, y):
+    t = np.arange(len(x))
+    t_new = np.linspace(t.min(), t.max(), 100)
+    spl = interpolate.make_interp_spline(t, y, k=2)  # type: BSpline
+    y_smooth = spl(t_new)
+    return t_new, y_smooth
+
+
+
+
 
 if __name__ == '__main__':
     with app.app_context():
