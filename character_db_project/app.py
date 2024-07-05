@@ -241,13 +241,14 @@ def compare_characters_data():
         character = Character.query.get(id)
         arc = CharacterArc.query.filter_by(character_id=id).first()
         if character and arc:
+            x = [0, 1, 2]
+            y = [arc.act1_psychological_index, arc.act2_psychological_index, arc.act3_psychological_index]
+            x_smooth, y_smooth = create_curve(x, y)
             data.append({
                 'name': character.name,
-                'psychological_index': [
-                    arc.act1_psychological_index,
-                    arc.act2_psychological_index,
-                    arc.act3_psychological_index
-                ]
+                'psychological_index': y,
+                'x_smooth': x_smooth.tolist(),
+                'y_smooth': y_smooth.tolist()
             })
     return jsonify({
         'labels': ['Act 1', 'Act 2', 'Act 3'],

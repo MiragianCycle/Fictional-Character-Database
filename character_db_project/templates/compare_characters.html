@@ -33,15 +33,29 @@
         .then(response => response.json())
         .then(data => {
             const colors = ['#f5c2e7', '#89b4fa', '#f38ba8', '#a6e3a1', '#fab387', '#cba6f7', '#94e2d5'];
-            const traces = data.datasets.map((dataset, index) => ({
-                x: data.labels,
-                y: dataset.psychological_index,
-                type: 'scatter',
-                mode: 'lines+markers',
-                name: dataset.name,
-                line: {color: colors[index % colors.length]},
-                marker: {size: 10, color: colors[index % colors.length]}
-            }));
+            const traces = [];
+
+            data.datasets.forEach((dataset, index) => {
+                // Smooth line
+                traces.push({
+                    x: dataset.x_smooth,
+                    y: dataset.y_smooth,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: dataset.name,
+                    line: {color: colors[index % colors.length], shape: 'spline'},
+                });
+                // Points
+                traces.push({
+                    x: [0, 1, 2],
+                    y: dataset.psychological_index,
+                    type: 'scatter',
+                    mode: 'markers',
+                    name: dataset.name + ' (Acts)',
+                    marker: {size: 10, color: colors[index % colors.length]},
+                    showlegend: false
+                });
+            });
 
             const layout = {
                 title: {
